@@ -1,0 +1,10 @@
+http:
+  middlewares:
+    auth:
+      forwardAuth:
+        address: http://auth/auth
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-Auth-User
+          - X-Auth-Email
+          - X-Auth-Username
