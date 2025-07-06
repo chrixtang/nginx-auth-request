@@ -1,15 +1,35 @@
 services:
+  traefik:
+    command:
+      - --api.insecure=true
+      - --providers.docker
+      - --providers.file.directory=/etc/traefik/config
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+    volumes:
+      -/var/run/docker.sock:/var/run/docker.sock:ro
+      -./traefik:/etc/traefik/config
+    ports:
+      - "80:80"
+      - "8080:8080"
+    depends_on:
+      - auth
+      - app
   auth:
     build:
       context: ./auth
     volumes:
       - ./auth/auth.py:/app/auth.py
-  nginx:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.app.middlewares=auth"
+      - "traefik.http.services.auth.loadbalancer.server.port=9001"
+  app:
     build:
-      context: ./nginx
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-    ports:
-      - "8080:80"
-    depends_on:
-      - auth
+      context: ./app
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.app.rule=PathPrefix(`/`)"
+        - "traefik.http.routers.app.middlewares=auth@file"
+        - "traefik.http.services.app.loadbalancer.server.port=9000"
